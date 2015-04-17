@@ -36,23 +36,36 @@ def get_complete_info(user_id):
         p = get_profile(user_id)
         with open(profile_path, 'w') as f:
             f.write(json.dumps(p, indent=2))
+    else:
+        with open(profile_path, 'r') as f:
+            p = json.loads(f.read())
+
+    if not os.path.exists(profile_path.replace('_profile', '_followers')):
         followers = get(p['followupActions']['followers'])
-        following = get(p['followupActions']['following'])
         with open(profile_path.replace('_profile', '_followers'), 'w') as f:
             f.write(json.dumps(followers, indent=2))
+    else:
+        with open(profile_path.replace('_profile', '_followers'), 'r') as f:
+            followers = json.loads(f.read())
+
+    if not os.path.exists(profile_path.replace('_profile', '_following')):
+        following = get(p['followupActions']['following'])
         with open(profile_path.replace('_profile', '_following'), 'w') as f:
             f.write(json.dumps(following, indent=2))
-        profiles_done.add(user_id)
+    else:
+        with open(profile_path.replace('_profile', '_following'), 'r') as f:
+            following = json.loads(f.read())
 
-        new_users = []
-        for f in followers['result']:
-            if f['id'] not in profiles_done:
-                new_users.append(f['id'])
-        for f in following['result']:
-            if f['id'] not in profiles_done:
-                new_users.append(f['id'])
-        return new_users
-    return []
+    profiles_done.add(user_id)
+
+    new_users = []
+    for f in followers['result']:
+        if f['id'] not in profiles_done:
+            new_users.append(f['id'])
+    for f in following['result']:
+        if f['id'] not in profiles_done:
+            new_users.append(f['id'])
+    return new_users
 
 def search(username):
     return put('https://social.meerkatapp.co/users/search?v=2', {'username' : username})
@@ -77,6 +90,10 @@ if __name__ == '__main__':
 
     while len(profiles_to_parse):
         user_id = profiles_to_parse.popleft()
-        new_user_ids = get_complete_info(user_id)
-        print 'Found {0} new user ids'.format(len(new_user_ids))
-        profiles_to_parse.extend(new_user_ids)
+        try:
+            new_user_ids = get_complete_info(user_id)
+            print 'Found {0} new user ids'.format(len(new_user_ids))
+            profiles_to_parse.extend(new_user_ids)
+        except Exception as e:
+            print 'Failed to get data for user_id {0}: {1}'.format(user_id, e)
+
