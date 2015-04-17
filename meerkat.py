@@ -1,26 +1,82 @@
 #! /usr/bin/python
 
+import os
+import sys
 import requests
 import json
+from collections import deque
 
-def get_url(url):
-    r = requests.get(url)
+DATA_DIR = 'data'
+
+profiles_to_parse = deque()
+profiles_done = set()
+
+def put(url, data):
+    r = requests.put(url, data=json.dumps(data), headers={'Content-Type': 'application/json'}, verify=False)
+    if r.status_code == 200:
+        return json.loads(r.content)
+    else:
+        return {}
+
+def get(url):
+    r = requests.get(url, verify=False)
     if r.status_code == 200:
         return json.loads(r.content)
     else:
         return {}
 
 def get_profile(user_id):
-    return get_url('https://resources.meerkatapp.co/users/{0}/profile?v=2'.format(user_id))
+    return get('https://resources.meerkatapp.co/users/{0}/profile?v=2'.format(user_id))
+
+def get_complete_info(user_id):
+    print 'Getting data for', user_id
+    profile_path = os.path.join('data', user_id + '_profile')
+
+    if not os.path.exists(profile_path):
+        p = get_profile(user_id)
+        with open(profile_path, 'w') as f:
+            f.write(json.dumps(p, indent=2))
+        followers = get(p['followupActions']['followers'])
+        following = get(p['followupActions']['following'])
+        with open(profile_path.replace('_profile', '_followers'), 'w') as f:
+            f.write(json.dumps(followers, indent=2))
+        with open(profile_path.replace('_profile', '_following'), 'w') as f:
+            f.write(json.dumps(following, indent=2))
+        profiles_done.add(user_id)
+
+        new_users = []
+        for f in followers['result']:
+            if f['id'] not in profiles_done:
+                new_users.append(f['id'])
+        for f in following['result']:
+            if f['id'] not in profiles_done:
+                new_users.append(f['id'])
+        return new_users
+    return []
+
+def search(username):
+    return put('https://social.meerkatapp.co/users/search?v=2', {'username' : username})
 
 if __name__ == '__main__':
-    p = get_profile('550099452400006f00a5277f')
-    print json.dumps(p, indent=2)
+    if len(sys.argv) == 1:
+        print 'Pass in a username to start crawling'
+        exit()
 
-    followers = get_url(p['followupActions']['followers'])
-    following = get_url(p['followupActions']['following'])
+    username = sys.argv[1]
 
-    print json.dumps(followers, indent=2)
-    print json.dumps(following, indent=2)
+    print 'Searching for', username
+    u = search(username)
+    if u:
+        user_id = u['result'][0] # Just pick the first one
+        print 'Found user_id', user_id
+    else:
+        print 'Could not find user_id', r.content
+        exit()
 
+    profiles_to_parse.append(user_id)
 
+    while len(profiles_to_parse):
+        user_id = profiles_to_parse.popleft()
+        new_user_ids = get_complete_info(user_id)
+        print 'Found {0} new user ids'.format(len(new_user_ids))
+        profiles_to_parse.extend(new_user_ids)
