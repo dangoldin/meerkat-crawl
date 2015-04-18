@@ -30,7 +30,7 @@ def get_profile(user_id):
 
 def get_complete_info(user_id):
     print 'Getting data for', user_id
-    profile_path = os.path.join('data', user_id + '_profile')
+    profile_path = os.path.join(DATA_DIR, user_id + '_profile')
 
     if not os.path.exists(profile_path):
         p = get_profile(user_id)
