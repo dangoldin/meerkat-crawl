@@ -6,7 +6,7 @@ import requests
 import json
 from collections import deque
 
-DATA_DIR = 'data'
+DATA_DIR = '/Users/danielgoldin/data/meerkat'
 
 profiles_to_parse = deque()
 profiles_done = set()
