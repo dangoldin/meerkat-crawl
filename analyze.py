@@ -36,7 +36,7 @@ def analyze_user(user_id):
 
         profiles_done.add(user_id)
 
-        following = [f['id'] for f in following['result']]
+        following = [f['id'] for f in following['result'] if f['id'] not in profiles_done]
         return following
     return []
 
