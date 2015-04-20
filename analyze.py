@@ -11,7 +11,6 @@ OUT_DIR = '/Users/danielgoldin/data/meerkat-out'
 
 profiles_to_analyze = deque()
 profiles_done = set()
-
 user_id_to_username_map = {}
 
 DEBUG = False
