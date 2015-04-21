@@ -58,3 +58,45 @@ from (
 ) d
 group by num_followers
 order by num_followers asc;
+
+-- High volume investigation
+select u1.username as source, u2.username as target
+from meerkat m
+join meerkat_users u1 on m.source = u1.userid
+join meerkat_users u2 on m.target = u2.userid
+join (
+  select target
+  from meerkat m
+  group by target
+  having count(1) > 100
+) high_vol_target on high_vol_target.target = m.target
+join (
+  select source
+  from meerkat m
+  group by source
+  having count(1) > 10
+) high_vol_source on high_vol_source.source = m.source;
+
+-- High volume into a file
+select *
+  from (
+  select u1.username as source, u2.username as target
+  from meerkat m
+  join meerkat_users u1 on m.source = u1.userid
+  join meerkat_users u2 on m.target = u2.userid
+  join (
+    select target
+    from meerkat m
+    group by target
+    having count(1) > 100
+  ) high_vol_target on high_vol_target.target = m.target
+  join (
+    select source
+    from meerkat m
+    group by source
+    having count(1) > 100
+  ) high_vol_source on high_vol_source.source = m.source
+) d into outfile '/tmp/meerkat_high.csv'
+fields terminated by ','
+enclosed by ''
+lines terminated by '\n';
