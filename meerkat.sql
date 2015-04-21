@@ -31,8 +31,30 @@ left join meerkat_users u on m.source = u.userid
 group by source
 order by num_following desc;
 
+select num_following, count(1) as num_in_bucket
+from (
+  select coalesce(u.username, m.source) as username, count(1) as num_following
+  from meerkat m
+  left join meerkat_users u on m.source = u.userid
+  group by source
+  order by num_following desc
+) d
+group by num_following
+order by num_following asc;
+
 select coalesce(u.username, m.target) as username, count(1) as num_followers
 from meerkat m
 left join meerkat_users u on m.target = u.userid
 group by target
 order by num_followers desc;
+
+select num_followers, count(1) as num_in_bucket
+from (
+  select coalesce(u.username, m.target) as username, count(1) as num_followers
+  from meerkat m
+  left join meerkat_users u on m.target = u.userid
+  group by target
+  order by num_followers desc
+) d
+group by num_followers
+order by num_followers asc;
