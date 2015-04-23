@@ -100,3 +100,35 @@ select *
 fields terminated by ','
 enclosed by ''
 lines terminated by '\n';
+
+select *
+from (
+  select u1.username as source, u2.username as target
+  from meerkat m
+  join meerkat_users u1 on m.source = u1.userid
+  join meerkat_users u2 on m.target = u2.userid
+  where m.source not in (
+    select target
+    from meerkat m
+    group by target
+    having count(1) > 500
+    union
+    select source
+    from meerkat m
+    group by source
+    having count(1) > 500
+  ) and m.target not in (
+    select target
+    from meerkat m
+    group by target
+    having count(1) > 500
+    union
+    select source
+    from meerkat m
+    group by source
+    having count(1) > 500
+  )
+) d into outfile '/tmp/meerkat_500.csv'
+fields terminated by ','
+enclosed by ''
+lines terminated by '\n';
