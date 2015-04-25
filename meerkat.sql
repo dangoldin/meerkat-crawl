@@ -132,3 +132,29 @@ from (
 fields terminated by ','
 enclosed by ''
 lines terminated by '\n';
+
+create table meerkat_high_vol as
+    select target as userid
+    from meerkat m
+    group by target
+    having count(1) > 500
+    union
+    select source as userid
+    from meerkat m
+    group by source
+    having count(1) > 500;
+
+create index idx_userid on meerkat_high_vol(userid);
+
+select *
+from (
+  select u1.username as source, u2.username as target
+  from meerkat m
+  join meerkat_users u1 on m.source = u1.userid
+  join meerkat_users u2 on m.target = u2.userid
+  join meerkat_high_vol mh1 on m.source = mh1.userid
+  join meerkat_high_vol mh2 on m.target = mh2.userid
+) d into outfile '/tmp/meerkat_500.csv'
+fields terminated by ','
+enclosed by ''
+lines terminated by '\n';
